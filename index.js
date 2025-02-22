@@ -7,6 +7,8 @@ function toggleDimension() {
     document.getElementById('vector1zLabel').style.display = is3D ? 'block' : 'none';
     document.getElementById('vector2z').style.display = is3D ? 'block' : 'none';
     document.getElementById('vector2zLabel').style.display = is3D ? 'block' : 'none';
+
+    calculateAndDrawVectors();
 }
 
 function calculate(operation) {
@@ -26,16 +28,23 @@ function calculate(operation) {
     let result;
     switch (operation) {
         case 'sum':
-            // Code for sum calculation
+            result = `Sum: (${vector1x + vector2x}, ${vector1y + vector2y}, ${vector1z + vector2z})`;
             break;
         case 'subtract':
-            // Code for subtraction calculation
+            result = `Subtraction: (${vector1x - vector2x}, ${vector1y - vector2y}, ${vector1z - vector2z})`;
             break;
         case 'dot':
-            // Code for dot product calculation
+            result = `Dot Product: ${vector1x * vector2x + vector1y * vector2y + vector1z * vector2z}`;
             break;
         case 'cross':
-            // Code for cross product calculation
+            if (!is3D) {
+                result = 'Cross product is only defined in 3D!';
+            } else {
+                let crossX = vector1y * vector2z - vector1z * vector2y;
+                let crossY = vector1z * vector2x - vector1x * vector2z;
+                let crossZ = vector1x * vector2y - vector1y * vector2x;
+                result = `Cross Product: (${crossX}, ${crossY}, ${crossZ})`;
+            }
             break;
         case 'angle':
             let dotProduct = (vector1x * vector2x) + (vector1y * vector2y) + (vector1z * vector2z);
@@ -50,6 +59,7 @@ function calculate(operation) {
     }
 
     document.getElementById('result').textContent = result;
+    calculateAndDrawVectors();
 }
 
 function clearInputs() {
@@ -72,37 +82,100 @@ function clearInputs() {
 let canvas = document.getElementById('vectorCanvas');
 let ctx = canvas.getContext('2d');
 
-function drawVector(x, y, color) {
+function drawVector(x, y, z = 0, color) {
+    const focalLength = 300; // Adjust for perspective effect
+    const cameraZ = 500; // Position of the camera along the Z-axis
+    
+    // Perspective projection formula
+    let scale = focalLength / (cameraZ - z);
+    let screenX = canvas.width / 2 + x * scale;
+    let screenY = canvas.height / 2 - y * scale;
+
     ctx.beginPath();
     ctx.moveTo(canvas.width / 2, canvas.height / 2);
-    ctx.lineTo(canvas.width / 2 + x, canvas.height / 2 - y);
+    ctx.lineTo(screenX, screenY);
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.stroke();
 }
 
+
+function drawAxes() {
+    // ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawings
+    ctx.beginPath();
+    ctx.lineWidth = 2;
+
+    // X-axis (horizontal)
+    ctx.strokeStyle = 'black';
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+
+    // Z-axis (depth) - Only in 3D mode
+    if (is3D) {
+        ctx.strokeStyle = 'black'; // Different color for better visibility
+        const focalLength = 300;  // Perspective effect
+        const cameraZ = 500;       // Simulated camera position
+        const zFar = 300;          // Positive Z direction
+        const zNear = -1000;        // Negative Z direction
+
+        // Convert positive Z-axis to screen coordinates
+        let scaleFar = focalLength / (cameraZ - zFar);
+        let zFarX = canvas.width / 2 + zFar * scaleFar;
+        let zFarY = canvas.height / 2 + zFar * scaleFar;
+
+        // Convert negative Z-axis to screen coordinates
+        let scaleNear = focalLength / (cameraZ - zNear);
+        let zNearX = canvas.width / 2 + zNear * scaleNear;
+        let zNearY = canvas.height / 2 + zNear * scaleNear;
+
+        // Draw Z-axis behind other elements
+        ctx.moveTo(zNearX, zNearY);
+        ctx.lineTo(canvas.width / 2, canvas.height / 2);
+        ctx.lineTo(zFarX, zFarY);
+    }
+
+    ctx.stroke();
+
+    // Y-axis (vertical) - Draw **last** so it's always on top
+    ctx.beginPath();
+    ctx.strokeStyle = 'black';
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.stroke();
+}
+
+
+
 function calculateAndDrawVectors() {
-    let vector1x = parseFloat(document.getElementById('vector1x').value);
-    let vector1y = parseFloat(document.getElementById('vector1y').value);
-    let vector2x = parseFloat(document.getElementById('vector2x').value);
-    let vector2y = parseFloat(document.getElementById('vector2y').value);
+    let vector1x = parseFloat(document.getElementById('vector1x').value) || 0;
+    let vector1y = parseFloat(document.getElementById('vector1y').value) || 0;
+    let vector2x = parseFloat(document.getElementById('vector2x').value) || 0;
+    let vector2y = parseFloat(document.getElementById('vector2y').value) || 0;
 
     let vector1z = 0;
     let vector2z = 0;
 
-    if (is3D) {
-        vector1z = parseFloat(document.getElementById('vector1z').value);
-        vector2z = parseFloat(document.getElementById('vector2z').value);
-    }
-
     // Clear canvas before drawing
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw vector 1
-    drawVector(vector1x * 10, vector1y * 10, 'red'); // Scale the vectors for visualization
+    if (is3D) {
+        vector1z = parseFloat(document.getElementById('vector1z').value);
+        vector2z = parseFloat(document.getElementById('vector2z').value);
 
-    // Draw vector 2
-    drawVector(vector2x * 10, vector2y * 10, 'blue'); // Scale the vectors for visualization
+        drawVector(vector1x * 10, vector1y * 10, vector1z * 10, 'red'); // Scale the vectors for visualization
+        drawVector(vector2x * 10, vector2y * 10, vector2z * 10, 'blue'); // Scale the vectors for visualization
+    }
+
+    else{
+        
+        // Draw vector 1
+        drawVector(vector1x * 10, vector1y * 10,0, 'red'); // Scale the vectors for visualization
+
+        // Draw vector 2
+        drawVector(vector2x * 10, vector2y * 10,0, 'blue'); // Scale the vectors for visualization
+    }
+
+    drawAxes();
 }
 
 // Call calculateAndDrawVectors when the page loads or when the button is clicked
